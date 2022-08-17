@@ -36,7 +36,7 @@ export const signin = async (req, res, next) => {
     //user._id trong db mongo
     const token = jwt.sign({ id: user._id }, process.env.JWT);
     //Tránh send pass cho user tách pass ra (_doc để tránh râu ria)
-    const {password,... others} = user._doc;
+    const { password, ...others } = user._doc;
 
     res
       .cookie("access_token", token, {
@@ -46,5 +46,37 @@ export const signin = async (req, res, next) => {
       .json(others);
   } catch (err) {
     next(err);
+  }
+};
+
+export const googleAuth = async (req, res, next) => {
+  try {
+    //Nếu có user roi
+    const user = await User.findOne({ email: req.body.email });
+    if (user) {
+      const token = jwt.sign({ id: user._id }, process.env.JWT);
+      res
+        .cookie("access_token", token, {
+          httpOnly: true,
+        })
+        .status(200)
+        .json(user._doc);
+    } else {
+      //Chua co user
+      const newUser = new User({
+        ...req.body,
+        fromGoogle:true
+      })
+      const savedUser = await newUser.save()
+      const token = jwt.sign({ id: savedUser._id }, process.env.JWT);
+      res
+        .cookie("access_token", token, {
+          httpOnly: true,
+        })
+        .status(200)
+        .json(savedUser._doc);
+    }
+  } catch (err) {
+    next(err)
   }
 };
